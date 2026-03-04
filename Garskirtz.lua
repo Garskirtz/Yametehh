@@ -135,9 +135,14 @@ setreadonly(mt, true)
 -- ========================================= --
 -- 4. FUNGSI BANTUAN GAME                    --
 -- ========================================= --
+-- FUNGSI GETVEHICLESEAT YANG SUDAH DI-OPTIMASI (ULTRA-RINGAN)
 local function getVehicleSeat(character)
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("VehicleSeat") and v.Occupant and v.Occupant.Parent == character then return v, v.Parent end
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid and humanoid.SeatPart and humanoid.SeatPart:IsA("VehicleSeat") then
+        local seat = humanoid.SeatPart
+        -- Mencari model mobil utama
+        local vehicle = seat:FindFirstAncestorWhichIsA("Model") or seat.Parent
+        return seat, vehicle
     end
     return nil, nil
 end
