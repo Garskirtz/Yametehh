@@ -11,7 +11,7 @@ if not success or not WindUI then
 end
 
 local Window = WindUI:CreateWindow({
-    Title = "Garskirtz Ganteng", -- Judul sudah diganti!
+    Title = "Garskirtz Ganteng", 
     Icon = "car", 
     Folder = "AutoRaceConfig",
     Size = UDim2.fromOffset(500, 350),
@@ -27,10 +27,10 @@ getgenv().AutoSolo = false
 getgenv().AutoMulti = false
 getgenv().FarmRunning = false 
 getgenv().SoloRemote = nil    
+getgenv().DynamicCarID = nil -- Memori untuk ID Mobil Baru
 
 local Config = {
-    Delay = 1.4, -- Nilai awal aman
-    CarID = "678b6cbe-3811-4a65-9d6b-aef02477b55a", 
+    Delay = 1.4, 
     RaceName = "Race8",
     RaceCoord = Vector3.new(-3306.07666015625, 2.989119052886963, 5396.876953125)
 }
@@ -64,7 +64,6 @@ MainTab:Toggle({
     end
 })
 
--- INPUT BOX UNTUK DELAY TELEPORT (Sesuai Request)
 MainTab:Input({
     Title = "Teleport Delay (Detik)",
     Desc = "Alert! gunakan waktu 1.2 keatas.\nKetik angka jeda teleport lalu tekan Enter.",
@@ -93,14 +92,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
 local player = Players.LocalPlayer
 
--- SISTEM ANTI-AFK: Mencegah kick 20 Menit Idle
 player.Idled:Connect(function()
     VirtualUser:CaptureController()
     VirtualUser:ClickButton2(Vector2.new())
 end)
 
 -- ========================================= --
--- 3. SISTEM PENYADAP REMOTE (NAMECALL HOOK) --
+-- 3. SISTEM PENYADAP (NAMECALL HOOK)        --
 -- ========================================= --
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
@@ -110,11 +108,22 @@ mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
     
-    if method == "FireServer" and args[1] == Config.RaceName then
+    -- Sadap Remote Race Solo
+    if method == "FireServer" and type(args[1]) == "string" and args[1] == Config.RaceName then
         if self.Name:match("%-") and not getgenv().SoloRemote then
             getgenv().SoloRemote = self
             if WindUI and WindUI.Notify then
                 WindUI:Notify({Title = "HACK BERHASIL!", Content = "Remote Solo telah direkam! Script mengambil alih.", Duration = 4})
+            end
+        end
+    end
+    
+    -- Sadap Remote Spawn Mobil
+    if method == "FireServer" and self.Name == "SpawnCar" then
+        if type(args[1]) == "string" and not getgenv().DynamicCarID then
+            getgenv().DynamicCarID = args[1]
+            if WindUI and WindUI.Notify then
+                WindUI:Notify({Title = "MOBIL DIREKAM!", Content = "ID Mobil disimpan. Auto Spawn aktif!", Duration = 4})
             end
         end
     end
@@ -164,13 +173,17 @@ local function getCheckpoints(raceFolder)
 end
 
 local function SpawnCar()
-    WindUI:Notify({Title = "Sistem", Content = "Mencoba Spawn Mobil...", Duration = 2})
-    pcall(function()
-        local args = { Config.CarID }
-        local spawnEvent = ReplicatedStorage:WaitForChild("SpawnCar", 3)
-        if spawnEvent then spawnEvent:FireServer(unpack(args)) end
-    end)
-    task.wait(4)
+    if getgenv().DynamicCarID then
+        WindUI:Notify({Title = "Sistem", Content = "Auto Spawn Mobil...", Duration = 2})
+        pcall(function()
+            local spawnEvent = ReplicatedStorage:WaitForChild("SpawnCar", 3)
+            if spawnEvent then spawnEvent:FireServer(getgenv().DynamicCarID) end
+        end)
+        task.wait(4)
+    else
+        WindUI:Notify({Title = "Tunggu!", Content = "Tolong SPAWN MOBIL secara manual 1x agar script hafal ID-nya!", Duration = 4})
+        task.wait(3)
+    end
 end
 
 -- ========================================= --
