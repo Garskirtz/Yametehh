@@ -11,7 +11,7 @@ if not success or not WindUI then
 end
 
 local Window = WindUI:CreateWindow({
-    Title = "Garskirtz Ganteng", -- NAMA SUDAH DIGANTI!
+    Title = "Garskirtz Ganteng", -- Judul sudah diganti!
     Icon = "car", 
     Folder = "AutoRaceConfig",
     Size = UDim2.fromOffset(500, 350),
@@ -29,7 +29,7 @@ getgenv().FarmRunning = false
 getgenv().SoloRemote = nil    
 
 local Config = {
-    Delay = 1.4, -- Nilai awal
+    Delay = 1.4, -- Nilai awal aman
     CarID = "678b6cbe-3811-4a65-9d6b-aef02477b55a", 
     RaceName = "Race8",
     RaceCoord = Vector3.new(-3306.07666015625, 2.989119052886963, 5396.876953125)
@@ -64,16 +64,19 @@ MainTab:Toggle({
     end
 })
 
--- MENGGUNAKAN INPUT BOX (KETIK MANUAL)
+-- INPUT BOX UNTUK DELAY TELEPORT (Sesuai Request)
 MainTab:Input({
     Title = "Teleport Delay (Detik)",
-    Desc = "Ketik angka jeda teleport lalu tekan Enter",
+    Desc = "Alert! gunakan waktu 1.2 keatas.\nKetik angka jeda teleport lalu tekan Enter.",
     Default = "1.4",
-    PlaceholderText = "1.4",
+    PlaceholderText = "Contoh: 1.4",
     ClearTextOnFocus = false,
     Callback = function(Value)
         local num = tonumber(Value)
         if num then
+            if num < 1.2 then
+                WindUI:Notify({Title = "Peringatan!", Content = "Waktu di bawah 1.2 sangat berisiko gagal/terdeteksi server!", Duration = 3})
+            end
             Config.Delay = num
             WindUI:Notify({Title = "Berhasil", Content = "Delay diubah menjadi " .. num .. " detik.", Duration = 2})
         else
