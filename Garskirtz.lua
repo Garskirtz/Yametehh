@@ -27,7 +27,7 @@ getgenv().AutoSolo = false
 getgenv().AutoMulti = false
 getgenv().FarmRunning = false 
 getgenv().SoloRemote = nil    
-getgenv().DynamicCarID = nil 
+getgenv().DynamicCarID = nil -- Memori untuk ID Mobil Baru
 
 local Config = {
     Delay = 1.4, 
@@ -67,7 +67,7 @@ MainTab:Toggle({
 MainTab:Input({
     Title = "Teleport Delay (Detik)",
     Desc = "Alert! gunakan waktu 1.2 keatas.\nKetik angka jeda teleport lalu tekan Enter.",
-    Default = tostring(Config.Delay),
+    Default = "1.4",
     PlaceholderText = "Contoh: 1.4",
     ClearTextOnFocus = false,
     Callback = function(Value)
@@ -98,47 +98,49 @@ player.Idled:Connect(function()
 end)
 
 -- ========================================= --
--- 3. SISTEM PENYADAP (HOOKMETAMETHOD AMAN)  --
+-- 3. SISTEM PENYADAP (NAMECALL HOOK)        --
 -- ========================================= --
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
+
+mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
+    local args = {...}
     
-    -- Dibungkus pcall agar tidak pernah membuat game crash (Lacking Capability Plugin Bypass)
-    pcall(function()
-        local args = {...}
-        if method == "FireServer" then
-            -- 1. Rekam Remote Race Solo
-            if type(args[1]) == "string" and args[1] == Config.RaceName then
-                if self.Name:match("%-") and not getgenv().SoloRemote then
-                    getgenv().SoloRemote = self
-                    if WindUI and WindUI.Notify then
-                        WindUI:Notify({Title = "HACK BERHASIL!", Content = "Remote Solo telah direkam! Script mengambil alih.", Duration = 4})
-                    end
-                end
-            -- 2. Rekam Remote Spawn Mobil
-            elseif self.Name == "SpawnCar" and type(args[1]) == "string" then
-                if not getgenv().DynamicCarID then
-                    getgenv().DynamicCarID = args[1]
-                    if WindUI and WindUI.Notify then
-                        WindUI:Notify({Title = "MOBIL DIREKAM!", Content = "ID Mobil disimpan. Auto Spawn aktif!", Duration = 4})
-                    end
-                end
+    -- Sadap Remote Race Solo
+    if method == "FireServer" and type(args[1]) == "string" and args[1] == Config.RaceName then
+        if self.Name:match("%-") and not getgenv().SoloRemote then
+            getgenv().SoloRemote = self
+            if WindUI and WindUI.Notify then
+                WindUI:Notify({Title = "HACK BERHASIL!", Content = "Remote Solo telah direkam! Script mengambil alih.", Duration = 4})
             end
         end
-    end)
+    end
+    
+    -- Sadap Remote Spawn Mobil
+    if method == "FireServer" and self.Name == "SpawnCar" then
+        if type(args[1]) == "string" and not getgenv().DynamicCarID then
+            getgenv().DynamicCarID = args[1]
+            if WindUI and WindUI.Notify then
+                WindUI:Notify({Title = "MOBIL DIREKAM!", Content = "ID Mobil disimpan. Auto Spawn aktif!", Duration = 4})
+            end
+        end
+    end
     
     return oldNamecall(self, ...)
-end))
+end)
+setreadonly(mt, true)
 
 -- ========================================= --
--- 4. FUNGSI BANTUAN (ULTRA-RINGAN)          --
+-- 4. FUNGSI BANTUAN GAME                    --
 -- ========================================= --
--- Menggunakan sistem pencarian dari karakter agar CPU HP tidak panas
+-- FUNGSI GETVEHICLESEAT YANG SUDAH DI-OPTIMASI (ULTRA-RINGAN)
 local function getVehicleSeat(character)
     local humanoid = character:FindFirstChild("Humanoid")
     if humanoid and humanoid.SeatPart and humanoid.SeatPart:IsA("VehicleSeat") then
         local seat = humanoid.SeatPart
+        -- Mencari model mobil utama
         local vehicle = seat:FindFirstAncestorWhichIsA("Model") or seat.Parent
         return seat, vehicle
     end
